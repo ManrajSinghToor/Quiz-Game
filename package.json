@@ -1,0 +1,10 @@
+{
+  "name": "quiz-arena",
+  "version": "1.0.0",
+  "description": "Quiz Arena - Multiplayer & Single Player AI Quiz Platform",
+  "private": true,
+  "scripts": {
+    "build": "cd Frontend && npm install && npm run build && cd ../Backend && npm install",
+    "start": "cd Backend && npm start"
+  }
+}
