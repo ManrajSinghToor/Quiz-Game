@@ -7,12 +7,13 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { user, loading, login: authLogin } = useAuth();
+  const { user, loading } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -57,13 +58,11 @@ const Signup = () => {
         return;
       }
 
-      // Auto login user and redirect to dashboard
-      if (data.token && data.user) {
-        authLogin(data.token, data.user);
-        navigate("/dashboard", { replace: true });
-      } else {
+      // Success: Show confirmation & redirect user to Login page
+      setSuccess(true);
+      setTimeout(() => {
         navigate("/login");
-      }
+      }, 2000);
     } catch (err) {
       setError("Cannot connect to server. Please try again.");
     } finally {
@@ -116,40 +115,53 @@ const Signup = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label className="label" htmlFor="name">Full Name</label>
-              <input id="name" type="text" placeholder="John Doe" value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="input" />
-            </div>
-            <div className="form-group">
-              <label className="label" htmlFor="email">Email Address</label>
-              <input id="email" type="email" placeholder="you@example.com" value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="input" />
-            </div>
-            <div className="form-group">
-              <label className="label" htmlFor="password">Password</label>
-              <div className="input-wrapper">
-                <input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
-                  value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required className="input" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="input-toggle">
-                  {showPassword ? <EyeOff /> : <Eye />}
-                </button>
+          {success ? (
+            <div className="card" style={{ padding: "2rem", textAlign: "center" }}>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "hsla(160, 80%, 45%, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                <Check style={{ width: 30, height: 30, color: "var(--success)" }} />
               </div>
-              <div className="password-reqs">
-                {passwordRequirements.map((req) => (
-                  <div key={req.label} className="password-req">
-                    <div className={`password-req-dot ${req.met ? "met" : "unmet"}`}>{req.met && <Check />}</div>
-                    <span style={{ color: req.met ? "var(--foreground)" : "var(--muted-foreground)" }}>{req.label}</span>
-                  </div>
-                ))}
-              </div>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>Account Created!</h2>
+              <p style={{ color: "var(--muted-foreground)", fontSize: "0.875rem" }}>
+                Welcome, <strong>{formData.name}</strong>! Your account has been successfully created. Redirecting to login...
+              </p>
+              <Link to="/login" className="btn btn-gradient" style={{ marginTop: "1.5rem", display: "inline-flex" }}>Go to Login</Link>
             </div>
-            <button type="submit" className="btn btn-gradient btn-lg btn-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : <><span>Create account</span> <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} /></>}
-            </button>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className="form-group">
+                <label className="label" htmlFor="name">Full Name</label>
+                <input id="name" type="text" placeholder="John Doe" value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="input" />
+              </div>
+              <div className="form-group">
+                <label className="label" htmlFor="email">Email Address</label>
+                <input id="email" type="email" placeholder="you@example.com" value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="input" />
+              </div>
+              <div className="form-group">
+                <label className="label" htmlFor="password">Password</label>
+                <div className="input-wrapper">
+                  <input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••"
+                    value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required className="input" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="input-toggle">
+                    {showPassword ? <EyeOff /> : <Eye />}
+                  </button>
+                </div>
+                <div className="password-reqs">
+                  {passwordRequirements.map((req) => (
+                    <div key={req.label} className="password-req">
+                      <div className={`password-req-dot ${req.met ? "met" : "unmet"}`}>{req.met && <Check />}</div>
+                      <span style={{ color: req.met ? "var(--foreground)" : "var(--muted-foreground)" }}>{req.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" className="btn btn-gradient btn-lg btn-full" disabled={isLoading}>
+                {isLoading ? "Creating account..." : <><span>Create account</span> <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} /></>}
+              </button>
+            </form>
+          )}
 
           <p className="auth-footer">
             Already have an account? <Link to="/login">Sign in</Link>
