@@ -359,3 +359,61 @@ export const sendOtpEmail = async (toEmail, userName, otpCode) => {
     htmlContent
   });
 };
+
+/**
+ * Sends a 6-digit Password Reset Verification Code to a user via email.
+ * @param {string} toEmail 
+ * @param {string} userName 
+ * @param {string} resetCode 
+ * @returns {Promise<boolean>}
+ */
+export const sendPasswordResetEmail = async (toEmail, userName, resetCode) => {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 0; }
+        .container { max-width: 550px; margin: 20px auto; background-color: #1e293b; border-radius: 16px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 28px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+        .body { padding: 32px 24px; line-height: 1.6; color: #cbd5e1; text-align: center; }
+        .greeting { font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 12px; text-align: left; }
+        .otp-card { background: rgba(239, 68, 68, 0.12); border: 2px dashed #ef4444; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center; }
+        .otp-code { font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #f87171; margin: 8px 0; }
+        .footer { padding: 16px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #334155; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔑 Password Reset Code</h1>
+        </div>
+        <div class="body">
+          <div class="greeting">Hi ${userName || "Player"},</div>
+          <p>We received a request to reset your Quiz Arena password. Please use the 6-digit verification code below to reset your password:</p>
+
+          <div class="otp-card">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px;">Password Reset Verification Code</div>
+            <div class="otp-code">${resetCode}</div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Expires in 10 minutes</div>
+          </div>
+
+          <p style="font-size: 13px; color: #94a3b8;">If you did not request a password reset, please ignore this email or contact support.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} Quiz Arena. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmailMessage({
+    toEmail,
+    userName,
+    subject: `${resetCode} is your Quiz Arena Password Reset Code 🔑`,
+    htmlContent
+  });
+};

@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateQuestions } from "../services/quizService.js";
 import { notifyStatsUpdate, broadcastActivity } from "../services/socketService.js";
-import { verifyEmailDomain, sendWelcomeEmail, sendOtpEmail } from "../services/emailService.js";
+import { verifyEmailDomain, sendWelcomeEmail, sendOtpEmail, sendPasswordResetEmail } from "../services/emailService.js";
 
 const buildToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "24h" });
@@ -495,12 +495,12 @@ export const requestPasswordReset = async (req, res) => {
 
     console.log(`Password reset code for ${normalizedEmail}: ${code}`);
 
-    const response = { message: "Reset code created. Check your email/code and continue." };
-    if (process.env.NODE_ENV !== "production") {
-      response.resetCode = code;
-      response.expiresInMinutes = 10;
-    }
-    return res.json(response);
+    // Send 6-digit Reset Verification Code via Email
+    sendPasswordResetEmail(normalizedEmail, user.name, code).catch(err =>
+      console.warn("Password Reset Email warning:", err.message)
+    );
+
+    return res.json({ message: "Password reset code sent to your email. Please check your inbox." });
   } catch (error) {
     console.error("REQUEST PASSWORD RESET ERROR:", error);
     res.status(500).json({ message: "Server Error" });
