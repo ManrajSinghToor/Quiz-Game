@@ -72,12 +72,15 @@ try {
 
 /**
  * Creates a Gmail STARTTLS Nodemailer transporter on Port 587 (IPv4 forced).
- * Port 587 STARTTLS works natively with Gmail App Passwords without third-party API services.
+ * Automatically sanitizes invalid email env settings (such as smtp.gmail.com) on cloud hosts.
  */
 const getTransporter = async () => {
-  const rawUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
+  let smtpUser = (process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com").trim();
+  if (!smtpUser.includes("@") || smtpUser.startsWith("smtp.")) {
+    smtpUser = "manrajtoorsingh@gmail.com";
+  }
+
   const rawPass = process.env.SMTP_PASS || "lmmtomjitqfkipmy";
-  const smtpUser = rawUser.trim();
   const smtpPass = rawPass.replace(/\s+/g, "");
 
   return nodemailer.createTransport({
@@ -90,8 +93,8 @@ const getTransporter = async () => {
       pass: smtpPass
     },
     family: 4, // Force IPv4 ONLY to solve ENETUNREACH on Render/Cloud hosts
-    connectionTimeout: 12000,
-    socketTimeout: 12000,
+    connectionTimeout: 15000,
+    socketTimeout: 15000,
     tls: {
       rejectUnauthorized: false
     }
@@ -99,21 +102,21 @@ const getTransporter = async () => {
 };
 
 /**
- * Universal Gmail Email Dispatcher using Gmail App Passwords natively over Port 587 STARTTLS.
- * No third-party API services or external account signups required.
+ * Universal Email Dispatcher using Gmail App Passwords natively over Port 587 STARTTLS.
+ * Automatically handles email address sanitization.
  * @param {object} params
  * @returns {Promise<boolean>}
  */
 const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => {
-  const rawUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
-  const rawPass = process.env.SMTP_PASS || "lmmtomjitqfkipmy";
-  const smtpUser = rawUser.trim();
-  const smtpPass = rawPass.replace(/\s+/g, "");
+  let smtpUser = (process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com").trim();
+  if (!smtpUser.includes("@") || smtpUser.startsWith("smtp.")) {
+    smtpUser = "manrajtoorsingh@gmail.com";
+  }
   const sender = process.env.SMTP_FROM || `"Quiz Arena" <${smtpUser}>`;
 
   // Priority 1: Gmail Port 587 STARTTLS (Native Gmail App Password)
   try {
-    console.log(`[Email Dispatch] Sending to ${toEmail} via Gmail Port 587 STARTTLS...`);
+    console.log(`[Email Dispatch] Sending email to ${toEmail} via Gmail Port 587 STARTTLS (User: ${smtpUser})...`);
     const transporter = await getTransporter();
     const info = await transporter.sendMail({
       from: sender,
@@ -129,14 +132,17 @@ const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => 
 
   // Priority 2: Fallback to Gmail Port 465 SSL
   try {
+    const rawPass = process.env.SMTP_PASS || "lmmtomjitqfkipmy";
+    const smtpPass = rawPass.replace(/\s+/g, "");
+
     const tSSL = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 465,
       secure: true,
       auth: { user: smtpUser, pass: smtpPass },
       family: 4,
-      connectionTimeout: 12000,
-      socketTimeout: 12000,
+      connectionTimeout: 15000,
+      socketTimeout: 15000,
       tls: { rejectUnauthorized: false }
     });
     const infoSSL = await tSSL.sendMail({

@@ -3,7 +3,9 @@ export function cn(...classes) {
 }
 
 export function getApiBase() {
-  return import.meta.env.VITE_API_URL || 
-         (window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://quiz-game-backend-9tet.onrender.com');
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && !envUrl.includes("example.com")) {
+    return envUrl.replace(/\/$/, "");
+  }
+  return window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://quiz-game-backend-9tet.onrender.com';
 }
-
