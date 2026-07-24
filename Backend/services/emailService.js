@@ -71,17 +71,15 @@ const getTransporter = async () => {
   const smtpUser = rawUser.trim();
   const smtpPass = rawPass.replace(/\s+/g, "");
 
+  // Built-in Gmail service (most reliable for cloud hosts like Render/AWS)
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: true, // Port 465 uses SSL directly (works reliably on Render, Vercel, AWS)
+    service: "gmail",
     auth: {
       user: smtpUser,
       pass: smtpPass
     },
-    connectionTimeout: 5000, // 5 seconds max TCP connect timeout
-    socketTimeout: 5000,     // 5 seconds max socket idle timeout
-    greetingTimeout: 5000,   // 5 seconds max SMTP greeting timeout
+    connectionTimeout: 10000,
+    socketTimeout: 10000,
     tls: {
       rejectUnauthorized: false
     }

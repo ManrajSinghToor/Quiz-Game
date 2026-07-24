@@ -69,7 +69,7 @@ export const sendSignupOtp = async (req, res) => {
     } catch (emailErr) {
       console.error("OTP Send Failure:", emailErr.message);
       return res.status(400).json({
-        message: `Could not send verification email to '${cleanEmail}'. Please make sure you entered a valid, existing email address.`
+        message: `Failed to send email to '${cleanEmail}': ${emailErr.message || "Connection timeout"}. Please try again.`
       });
     }
 
