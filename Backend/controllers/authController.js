@@ -130,8 +130,13 @@ export const register = async (req, res) => {
       avatar: 0
     });
 
-    // Send Welcome Email asynchronously via HTTPS REST API / Nodemailer
-    sendWelcomeEmail(cleanEmail, cleanName).catch(err => console.warn("Welcome Email warning:", err.message));
+    // Send Welcome Email and await delivery so container runtime doesn't terminate background connection
+    try {
+      await sendWelcomeEmail(cleanEmail, cleanName);
+      console.log(`Welcome email successfully sent to ${cleanEmail}`);
+    } catch (emailErr) {
+      console.error("Welcome Email Dispatch Warning:", emailErr.message);
+    }
 
     const token = buildToken(user._id);
 
