@@ -58,11 +58,8 @@ const Signup = () => {
         return;
       }
 
-      // Success: Show confirmation & redirect user to Login page
+      // Success: Show confirmation card. Navigation happens when user clicks "Go to Login"
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
     } catch (err) {
       setError("Cannot connect to server. Please try again.");
     } finally {
@@ -122,9 +119,11 @@ const Signup = () => {
               </div>
               <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>Account Created!</h2>
               <p style={{ color: "var(--muted-foreground)", fontSize: "0.875rem" }}>
-                Welcome, <strong>{formData.name}</strong>! Your account has been successfully created. Redirecting to login...
+                Welcome, <strong>{formData.name}</strong>! Your account has been successfully created. Click the button below to sign in.
               </p>
-              <Link to="/login" className="btn btn-gradient" style={{ marginTop: "1.5rem", display: "inline-flex" }}>Go to Login</Link>
+              <button type="button" onClick={() => navigate("/login")} className="btn btn-gradient btn-full" style={{ marginTop: "1.5rem" }}>
+                <span>Go to Login</span> <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="auth-form">
