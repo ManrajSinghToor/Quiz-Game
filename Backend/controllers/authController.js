@@ -1,11 +1,12 @@
 import User from "../models/userModel.js";
 import QuizResult from "../models/quizResultModel.js";
+import Otp from "../models/otpModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { generateQuestions } from "../services/quizService.js";
 import { notifyStatsUpdate, broadcastActivity } from "../services/socketService.js";
-import { verifyEmailDomain, sendWelcomeEmail } from "../services/emailService.js";
+import { verifyEmailDomain, sendWelcomeEmail, sendOtpEmail } from "../services/emailService.js";
 
 const buildToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "24h" });
@@ -29,27 +30,81 @@ const hashResetCode = (email, code) => {
     .digest("hex");
 };
 
-export const register = async (req, res) => {
+export const sendSignupOtp = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields required" });
+    const { name, email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name ? name.trim() : "Player";
 
+    // 1. Email format check
     const generalEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!generalEmailRegex.test(cleanEmail)) {
       return res.status(400).json({ message: "Please enter a valid email address" });
     }
 
-    // Verify email domain existence via DNS MX record lookup
+    // 2. Domain & Disposable check
     const domainVerification = await verifyEmailDomain(cleanEmail);
     if (!domainVerification.isValid) {
       return res.status(400).json({
-        message: domainVerification.reason || "Email domain does not exist or cannot receive email."
+        message: domainVerification.reason || "Email domain is invalid or cannot receive email."
       });
+    }
+
+    // 3. User existence check
+    const userExists = await User.findOne({ email: cleanEmail });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists with this email" });
+    }
+
+    // 4. Generate 6-digit OTP Code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 5. Send OTP Email first via Nodemailer
+    try {
+      await sendOtpEmail(cleanEmail, cleanName, otpCode);
+    } catch (emailErr) {
+      console.error("OTP Send Failure:", emailErr.message);
+      return res.status(400).json({
+        message: `Could not send verification email to '${cleanEmail}'. Please make sure you entered a valid, existing email address.`
+      });
+    }
+
+    // 6. Save OTP in DB (expires in 10 mins)
+    await Otp.deleteMany({ email: cleanEmail });
+    await Otp.create({
+      email: cleanEmail,
+      otp: otpCode,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    });
+
+    res.json({
+      message: `Verification code sent to ${cleanEmail}`
+    });
+  } catch (error) {
+    console.error("SEND OTP ERROR:", error);
+    res.status(500).json({ message: "Failed to send verification code" });
+  }
+};
+
+export const register = async (req, res) => {
+  try {
+    const { name, email, password, otp } = req.body;
+    if (!name || !email || !password || !otp) {
+      return res.status(400).json({ message: "All fields including verification code are required" });
+    }
+
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+
+    // 1. Verify OTP Code
+    const existingOtp = await Otp.findOne({ email: cleanEmail, otp: cleanOtp });
+    if (!existingOtp || existingOtp.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired verification code. Please click 'Resend Code'." });
     }
 
     if (!PASSWORD_REGEX.test(password)) {
@@ -75,14 +130,14 @@ export const register = async (req, res) => {
       password: hashedPassword,
       avatar: 0
     });
-    const token = buildToken(user._id);
+
+    // Delete used OTP
+    await Otp.deleteMany({ email: cleanEmail });
 
     // Send Welcome Email
-    try {
-      await sendWelcomeEmail(user.email, user.name);
-    } catch (emailErr) {
-      console.error("Welcome Email Dispatch Warning:", emailErr.message);
-    }
+    sendWelcomeEmail(cleanEmail, cleanName).catch(err => console.warn("Welcome Email warning:", err.message));
+
+    const token = buildToken(user._id);
 
     res.status(201).json({
       message: "User registered successfully",

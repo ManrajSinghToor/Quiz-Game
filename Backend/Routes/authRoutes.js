@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   register,
+  sendSignupOtp,
   login,
   saveQuizResult,
   updateName,
@@ -19,6 +20,7 @@ import requireDb from "../middlewares/requireDb.js";
 
 const router = express.Router();
 
+router.post('/send-signup-otp', requireDb, sendSignupOtp);
 router.post('/register', requireDb, register);
 router.post('/login', requireDb, login);
 router.get('/quiz-questions', getQuizQuestions);

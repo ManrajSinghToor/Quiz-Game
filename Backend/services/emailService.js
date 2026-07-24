@@ -1,162 +1,108 @@
 import nodemailer from "nodemailer";
 import dns from "dns";
-import net from "net";
+
+const DISPOSABLE_DOMAINS = new Set([
+  "tempmail.com", "guerrillamail.com", "10minutemail.com", "mailinator.com",
+  "throwaway.com", "yopmail.com", "dispostable.com", "trashmail.com",
+  "sharklasers.com", "getairmail.com", "temp-mail.org", "fakeinbox.com",
+  "mailnesia.com", "maildrop.cc", "emailondeck.com", "crazymailing.com"
+]);
 
 /**
- * Verifies if an email mailbox actually exists on Google or target mail provider.
- * Performs DNS MX lookup + SMTP RCPT TO handshake check.
+ * Verifies if an email address domain is valid, active, and can receive email.
  * @param {string} email 
  * @returns {Promise<{isValid: boolean, reason?: string}>}
  */
 export const verifyEmailDomain = async (email) => {
   try {
     if (!email || typeof email !== "string" || !email.includes("@")) {
-      return { isValid: false, reason: "Invalid email format" };
+      return { isValid: false, reason: "Please enter a valid email address format (e.g. user@example.com)." };
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const domain = cleanEmail.split("@")[1];
-    if (!domain) {
-      return { isValid: false, reason: "Missing domain" };
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return { isValid: false, reason: "Invalid email structure." };
     }
 
-    // 1. DNS MX Lookup
-    let mxRecords;
+    const parts = cleanEmail.split("@");
+    if (parts.length !== 2) {
+      return { isValid: false, reason: "Invalid email format." };
+    }
+
+    const [username, domain] = parts;
+    if (!username || !domain) {
+      return { isValid: false, reason: "Missing email username or domain." };
+    }
+
+    // Block disposable email domains
+    if (DISPOSABLE_DOMAINS.has(domain)) {
+      return { isValid: false, reason: "Temporary or disposable email domains are not allowed." };
+    }
+
+    // DNS MX Record Lookup to verify domain receives email
     try {
-      mxRecords = await dns.promises.resolveMx(domain);
+      const mxRecords = await dns.promises.resolveMx(domain);
       if (!mxRecords || mxRecords.length === 0) {
-        return { isValid: false, reason: `Domain @${domain} does not have active mail servers.` };
+        return { isValid: false, reason: `Email domain @${domain} does not have active mail servers.` };
       }
     } catch (dnsErr) {
       return {
         isValid: false,
-        reason: `Email domain @${domain} does not exist.`
+        reason: `Email domain @${domain} does not exist or has no active mail server.`
       };
     }
 
-    // 2. Real SMTP Mailbox Check (RCPT TO handshake)
-    mxRecords.sort((a, b) => a.priority - b.priority);
-    const mxHost = mxRecords[0].exchange;
-
-    return new Promise((resolve) => {
-      let socket;
-      let step = 0;
-      let timer;
-
-      const cleanup = () => {
-        clearTimeout(timer);
-        if (socket) socket.destroy();
-      };
-
-      // 3.5s timeout for fast response (fallback to valid if port 25 is restricted locally)
-      timer = setTimeout(() => {
-        cleanup();
-        resolve({ isValid: true });
-      }, 3500);
-
-      try {
-        socket = net.createConnection(25, mxHost);
-      } catch (e) {
-        cleanup();
-        return resolve({ isValid: true });
-      }
-
-      socket.setEncoding("ascii");
-
-      socket.on("error", () => {
-        cleanup();
-        resolve({ isValid: true });
-      });
-
-      socket.on("data", (data) => {
-        const response = data.toString();
-        const code = parseInt(response.substring(0, 3), 10);
-
-        if (step === 0 && code === 220) {
-          step++;
-          socket.write(`HELO quizarena.com\r\n`);
-        } else if (step === 1 && code === 250) {
-          step++;
-          socket.write(`MAIL FROM:<verify@quizarena.com>\r\n`);
-        } else if (step === 2 && code === 250) {
-          step++;
-          socket.write(`RCPT TO:<${cleanEmail}>\r\n`);
-        } else if (step === 3) {
-          step++;
-          socket.write(`QUIT\r\n`);
-          cleanup();
-
-          if (code === 250 || code === 251) {
-            resolve({ isValid: true });
-          } else if (code >= 500 && code <= 554) {
-            resolve({
-              isValid: false,
-              reason: `Email address '${cleanEmail}' does not exist on Google or your mail provider.`
-            });
-          } else {
-            resolve({ isValid: true });
-          }
-        }
-      });
-    });
+    return { isValid: true };
   } catch (error) {
     return {
       isValid: false,
-      reason: `Email verification error: ${error.message || "Unknown Error"}`
+      reason: `Email verification error: ${error.message || "Unknown error"}`
     };
   }
 };
 
 /**
- * Creates a nodemailer transporter instance (using env Gmail service or Ethereal test account)
+ * Creates a robust nodemailer transporter instance using Gmail SSL port 465
  */
 const getTransporter = async () => {
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+  const rawUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
+  const rawPass = process.env.SMTP_PASS || "lmmtomjitqfkipmy";
+  const smtpUser = rawUser.trim();
+  const smtpPass = rawPass.replace(/\s+/g, "");
 
-  if (smtpUser && smtpPass) {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: smtpUser,
-        pass: smtpPass
-      }
-    });
-  }
-
-  // Fallback to Ethereal Test Account if custom SMTP credentials are not set
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-  } catch (err) {
-    console.warn("Failed to create Ethereal test email account:", err.message);
-    return null;
-  }
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: true, // Port 465 uses SSL directly (works reliably on Render, Vercel, AWS)
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    },
+    connectionTimeout: 5000, // 5 seconds max TCP connect timeout
+    socketTimeout: 5000,     // 5 seconds max socket idle timeout
+    greetingTimeout: 5000,   // 5 seconds max SMTP greeting timeout
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
 };
 
 /**
  * Sends a branded Quiz Arena Welcome HTML email to a newly registered user.
  * @param {string} toEmail 
  * @param {string} userName 
+ * @returns {Promise<boolean>}
  */
 export const sendWelcomeEmail = async (toEmail, userName) => {
   try {
     const transporter = await getTransporter();
     if (!transporter) {
-      console.warn("Email transporter unavailable, skipping welcome email.");
-      return;
+      throw new Error("Transporter configuration failed.");
     }
 
-    const smtpUser = process.env.SMTP_USER;
-    const sender = process.env.SMTP_FROM || (smtpUser ? `"Quiz Arena" <${smtpUser}>` : `"Quiz Arena" <noreply@quizarena.com>`);
+    const smtpUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
+    const sender = process.env.SMTP_FROM || `"Quiz Arena" <${smtpUser}>`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -204,7 +150,7 @@ export const sendWelcomeEmail = async (toEmail, userName) => {
 
             <p>Ready to jump into your first quiz?</p>
             <div style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}" class="cta-btn">Start Playing Now</a>
+              <a href="${process.env.FRONTEND_URL || "https://quiz-game-six-blue.vercel.app"}" class="cta-btn">Start Playing Now</a>
             </div>
           </div>
           <div class="footer">
@@ -222,14 +168,84 @@ export const sendWelcomeEmail = async (toEmail, userName) => {
       html: htmlContent
     });
 
-    console.log(`[Email] Welcome email dispatched to ${toEmail} (MessageID: ${info.messageId})`);
-    
-    // Log preview URL if using Ethereal Test Account
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`[Email Preview URL]: ${previewUrl}`);
-    }
+    console.log(`[Email SUCCESS]: Sent welcome email to ${toEmail} (ID: ${info.messageId})`);
+    return true;
   } catch (error) {
-    console.error(`[Email Error] Failed to send welcome email to ${toEmail}:`, error.message);
+    console.error(`[Email FAILURE] Failed to send welcome email to ${toEmail}:`, error.message);
+    throw error;
+  }
+};
+
+/**
+ * Sends a 6-digit OTP Email Verification Code to a user.
+ * @param {string} toEmail 
+ * @param {string} userName 
+ * @param {string} otpCode 
+ * @returns {Promise<boolean>}
+ */
+export const sendOtpEmail = async (toEmail, userName, otpCode) => {
+  try {
+    const transporter = await getTransporter();
+    if (!transporter) {
+      throw new Error("Transporter configuration failed.");
+    }
+
+    const smtpUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
+    const sender = process.env.SMTP_FROM || `"Quiz Arena Verification" <${smtpUser}>`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 0; }
+          .container { max-width: 550px; margin: 20px auto; background-color: #1e293b; border-radius: 16px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+          .header { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 28px 24px; text-align: center; color: #ffffff; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+          .body { padding: 32px 24px; line-height: 1.6; color: #cbd5e1; text-align: center; }
+          .greeting { font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 12px; text-align: left; }
+          .otp-card { background: rgba(99, 102, 241, 0.12); border: 2px dashed #6366f1; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center; }
+          .otp-code { font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #818cf8; margin: 8px 0; }
+          .footer { padding: 16px 24px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Quiz Arena Email Verification</h1>
+          </div>
+          <div class="body">
+            <div class="greeting">Hi ${userName || "Player"},</div>
+            <p>Please enter the 6-digit verification code below to complete your registration and verify your email address:</p>
+
+            <div class="otp-card">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px;">Your 6-Digit Verification Code</div>
+              <div class="otp-code">${otpCode}</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Expires in 10 minutes</div>
+            </div>
+
+            <p style="font-size: 13px; color: #94a3b8;">If you did not request this code, you can safely ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Quiz Arena. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const info = await transporter.sendMail({
+      from: sender,
+      to: toEmail,
+      subject: `${otpCode} is your Quiz Arena Verification Code 🔐`,
+      html: htmlContent
+    });
+
+    console.log(`[OTP SUCCESS]: Sent verification code ${otpCode} to ${toEmail} (ID: ${info.messageId})`);
+    return true;
+  } catch (error) {
+    console.error(`[OTP FAILURE] Failed to send verification code to ${toEmail}:`, error.message);
+    throw error;
   }
 };

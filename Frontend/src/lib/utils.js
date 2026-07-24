@@ -4,6 +4,6 @@ export function cn(...classes) {
 
 export function getApiBase() {
   return import.meta.env.VITE_API_URL || 
-         (window.location.hostname === 'localhost' ? 'http://localhost:8080' : window.location.origin);
+         (window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'https://quiz-game-backend-9tet.onrender.com');
 }
 
