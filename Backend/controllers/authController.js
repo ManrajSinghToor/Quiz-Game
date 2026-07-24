@@ -100,18 +100,10 @@ export const register = async (req, res) => {
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Email format check
+    // 1. Standard Email format check
     const generalEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!generalEmailRegex.test(cleanEmail)) {
       return res.status(400).json({ message: "Please enter a valid email address" });
-    }
-
-    // 2. Domain MX check (verifies domain is registered and has active mail servers)
-    const domainVerification = await verifyEmailDomain(cleanEmail);
-    if (!domainVerification.isValid) {
-      return res.status(400).json({
-        message: domainVerification.reason || "Email domain is invalid or cannot receive email."
-      });
     }
 
     if (!PASSWORD_REGEX.test(password)) {
