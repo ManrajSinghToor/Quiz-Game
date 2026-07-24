@@ -71,8 +71,7 @@ try {
 }
 
 /**
- * Creates a Gmail STARTTLS Nodemailer transporter on Port 587 (IPv4 forced).
- * Automatically sanitizes invalid email env settings (such as smtp.gmail.com) on cloud hosts.
+ * Creates a Gmail STARTTLS Nodemailer transporter on Port 587 with fast 4s connection timeouts.
  */
 const getTransporter = async () => {
   let smtpUser = (process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com").trim();
@@ -93,8 +92,9 @@ const getTransporter = async () => {
       pass: smtpPass
     },
     family: 4, // Force IPv4 ONLY to solve ENETUNREACH on Render/Cloud hosts
-    connectionTimeout: 15000,
-    socketTimeout: 15000,
+    connectionTimeout: 4000,
+    socketTimeout: 4000,
+    greetingTimeout: 4000,
     tls: {
       rejectUnauthorized: false
     }
@@ -102,21 +102,80 @@ const getTransporter = async () => {
 };
 
 /**
- * Native Gmail Email Dispatcher using Gmail App Passwords directly over Port 587 STARTTLS.
- * Requires ZERO third-party API services, ZERO external signups, and ZERO API keys.
+ * Universal Fast Email Dispatcher supporting Resend/Brevo HTTPS APIs as well as Gmail SMTP.
  * @param {object} params
  * @returns {Promise<boolean>}
  */
 const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => {
+  const resendKey = process.env.RESEND_API_KEY;
+  const brevoKey = process.env.BREVO_API_KEY;
+
+  // 1. Resend HTTPS API (Fastest over Port 443)
+  if (resendKey) {
+    try {
+      console.log(`[Email Dispatch] Resend HTTPS API to ${toEmail}...`);
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendKey.trim()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          from: "Quiz Arena <onboarding@resend.dev>",
+          to: [toEmail],
+          subject,
+          html: htmlContent
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[Email SUCCESS (Resend HTTPS)]: Delivered to ${toEmail} (ID: ${data.id})`);
+        return true;
+      }
+      console.warn("[Resend API Error]:", data);
+    } catch (err) {
+      console.warn("[Resend API Exception]:", err.message);
+    }
+  }
+
+  // 2. Brevo HTTPS API (Fastest over Port 443)
+  if (brevoKey) {
+    try {
+      console.log(`[Email Dispatch] Brevo HTTPS API to ${toEmail}...`);
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": brevoKey.trim(),
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender: { name: "Quiz Arena", email: "manrajtoorsingh@gmail.com" },
+          to: [{ email: toEmail, name: userName || "Player" }],
+          subject,
+          htmlContent
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[Email SUCCESS (Brevo HTTPS)]: Delivered to ${toEmail} (ID: ${data.messageId})`);
+        return true;
+      }
+      console.warn("[Brevo API Error]:", data);
+    } catch (err) {
+      console.warn("[Brevo API Exception]:", err.message);
+    }
+  }
+
+  // 3. Gmail Nodemailer STARTTLS (Port 587)
   let smtpUser = (process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com").trim();
   if (!smtpUser.includes("@") || smtpUser.startsWith("smtp.")) {
     smtpUser = "manrajtoorsingh@gmail.com";
   }
   const sender = process.env.SMTP_FROM || `"Quiz Arena" <${smtpUser}>`;
 
-  // Priority 1: Gmail Port 587 STARTTLS (Native Gmail App Password)
   try {
-    console.log(`[Email Dispatch] Sending native Gmail email to ${toEmail} via Port 587 STARTTLS (User: ${smtpUser})...`);
+    console.log(`[Email Dispatch] Gmail Port 587 STARTTLS to ${toEmail} (User: ${smtpUser})...`);
     const transporter = await getTransporter();
     const info = await transporter.sendMail({
       from: sender,
@@ -124,13 +183,13 @@ const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => 
       subject,
       html: htmlContent
     });
-    console.log(`[Email SUCCESS (Native Gmail Port 587)]: Sent to ${toEmail} (ID: ${info.messageId})`);
+    console.log(`[Email SUCCESS (Gmail Port 587)]: Sent to ${toEmail} (ID: ${info.messageId})`);
     return true;
   } catch (err1) {
     console.warn(`[Gmail Port 587 STARTTLS Warning]: ${err1.message}. Trying Gmail Port 465 SSL fallback...`);
   }
 
-  // Priority 2: Fallback to Gmail Port 465 SSL
+  // 4. Fallback to Gmail Port 465 SSL
   try {
     const rawPass = process.env.SMTP_PASS || "lmmtomjitqfkipmy";
     const smtpPass = rawPass.replace(/\s+/g, "");
@@ -141,8 +200,9 @@ const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => 
       secure: true,
       auth: { user: smtpUser, pass: smtpPass },
       family: 4,
-      connectionTimeout: 15000,
-      socketTimeout: 15000,
+      connectionTimeout: 4000,
+      socketTimeout: 4000,
+      greetingTimeout: 4000,
       tls: { rejectUnauthorized: false }
     });
     const infoSSL = await tSSL.sendMail({
@@ -151,7 +211,7 @@ const sendEmailMessage = async ({ toEmail, userName, subject, htmlContent }) => 
       subject,
       html: htmlContent
     });
-    console.log(`[Email SUCCESS (Native Gmail Port 465 SSL)]: Sent to ${toEmail} (ID: ${infoSSL.messageId})`);
+    console.log(`[Email SUCCESS (Gmail Port 465 SSL)]: Sent to ${toEmail} (ID: ${infoSSL.messageId})`);
     return true;
   } catch (errSSL) {
     console.error(`[Gmail Email Error]: ${errSSL.message}`);

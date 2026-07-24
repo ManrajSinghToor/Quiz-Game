@@ -130,13 +130,10 @@ export const register = async (req, res) => {
       avatar: 0
     });
 
-    // Send Welcome Email and await delivery so container runtime doesn't terminate background connection
-    try {
-      await sendWelcomeEmail(cleanEmail, cleanName);
-      console.log(`Welcome email successfully sent to ${cleanEmail}`);
-    } catch (emailErr) {
-      console.error("Welcome Email Dispatch Warning:", emailErr.message);
-    }
+    // Dispatch Welcome Email in background (non-blocking for instant signup)
+    sendWelcomeEmail(cleanEmail, cleanName).catch(emailErr => {
+      console.warn("[Background Welcome Email Warning]:", emailErr.message);
+    });
 
     const token = buildToken(user._id);
 
