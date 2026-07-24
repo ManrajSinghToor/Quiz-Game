@@ -62,8 +62,16 @@ export const verifyEmailDomain = async (email) => {
   }
 };
 
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder("ipv4first");
+  }
+} catch (e) {
+  // Ignore if unsupported in older Node versions
+}
+
 /**
- * Creates a robust nodemailer transporter instance using Gmail SSL port 465
+ * Creates a robust nodemailer transporter instance forced to IPv4 for cloud environments
  */
 const getTransporter = async () => {
   const rawUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || "manrajtoorsingh@gmail.com";
@@ -71,13 +79,15 @@ const getTransporter = async () => {
   const smtpUser = rawUser.trim();
   const smtpPass = rawPass.replace(/\s+/g, "");
 
-  // Built-in Gmail service (most reliable for cloud hosts like Render/AWS)
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: smtpUser,
       pass: smtpPass
     },
+    family: 4, // Force IPv4 ONLY to solve ENETUNREACH on Render/Cloud hosts
     connectionTimeout: 10000,
     socketTimeout: 10000,
     tls: {
