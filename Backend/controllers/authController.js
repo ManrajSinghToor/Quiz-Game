@@ -92,19 +92,26 @@ export const sendSignupOtp = async (req, res) => {
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, otp } = req.body;
-    if (!name || !email || !password || !otp) {
-      return res.status(400).json({ message: "All fields including verification code are required" });
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
-    const cleanOtp = otp.trim();
 
-    // 1. Verify OTP Code
-    const existingOtp = await Otp.findOne({ email: cleanEmail, otp: cleanOtp });
-    if (!existingOtp || existingOtp.expiresAt < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired verification code. Please click 'Resend Code'." });
+    // 1. Email format check
+    const generalEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!generalEmailRegex.test(cleanEmail)) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    // 2. Domain MX check (verifies domain is registered and has active mail servers)
+    const domainVerification = await verifyEmailDomain(cleanEmail);
+    if (!domainVerification.isValid) {
+      return res.status(400).json({
+        message: domainVerification.reason || "Email domain is invalid or cannot receive email."
+      });
     }
 
     if (!PASSWORD_REGEX.test(password)) {
@@ -131,10 +138,7 @@ export const register = async (req, res) => {
       avatar: 0
     });
 
-    // Delete used OTP
-    await Otp.deleteMany({ email: cleanEmail });
-
-    // Send Welcome Email
+    // Send Welcome Email asynchronously via HTTPS REST API / Nodemailer
     sendWelcomeEmail(cleanEmail, cleanName).catch(err => console.warn("Welcome Email warning:", err.message));
 
     const token = buildToken(user._id);
