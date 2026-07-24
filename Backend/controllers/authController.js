@@ -475,7 +475,6 @@ export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!email || !emailRegex.test(email)) {
       return res.status(400).json({ message: "Please enter a valid email address" });
     }
@@ -483,9 +482,8 @@ export const requestPasswordReset = async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await User.findOne({ email: normalizedEmail });
 
-    // Always respond success to avoid account enumeration.
     if (!user) {
-      return res.json({ message: "If the account exists, a reset code has been created." });
+      return res.status(400).json({ message: "No account found with this email address" });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -496,11 +494,13 @@ export const requestPasswordReset = async (req, res) => {
     console.log(`Password reset code for ${normalizedEmail}: ${code}`);
 
     // Send 6-digit Reset Verification Code via Email
-    sendPasswordResetEmail(normalizedEmail, user.name, code).catch(err =>
-      console.warn("Password Reset Email warning:", err.message)
-    );
+    try {
+      await sendPasswordResetEmail(normalizedEmail, user.name, code);
+    } catch (mailErr) {
+      console.error("Password reset email dispatch error:", mailErr.message);
+    }
 
-    return res.json({ message: "Password reset code sent to your email. Please check your inbox." });
+    return res.json({ message: `Password reset code sent to ${normalizedEmail}. Please check your inbox.` });
   } catch (error) {
     console.error("REQUEST PASSWORD RESET ERROR:", error);
     res.status(500).json({ message: "Server Error" });
