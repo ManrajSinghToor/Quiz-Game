@@ -119,9 +119,15 @@ const Signup = () => {
               </div>
               <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem" }}>Account Created!</h2>
               <p style={{ color: "var(--muted-foreground)", fontSize: "0.875rem" }}>
-                Welcome, <strong>{formData.name}</strong>! Your account has been successfully created. Click the button below to sign in.
+                Welcome, <strong>{formData.name}</strong>! Your account has been successfully created.
               </p>
-              <button type="button" onClick={() => navigate("/login")} className="btn btn-gradient btn-full" style={{ marginTop: "1.5rem" }}>
+              <div style={{ margin: "1.25rem 0", padding: "0.875rem 1rem", background: "rgba(99, 102, 241, 0.1)", border: "1px solid rgba(99, 102, 241, 0.25)", borderRadius: "var(--radius)", fontSize: "0.85rem", color: "var(--foreground)", textAlign: "left", lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>📧 Confirmation Email Sent</div>
+                <div style={{ color: "var(--muted-foreground)", fontSize: "0.8rem" }}>
+                  A signup confirmation email was sent to <strong>{formData.email}</strong>. If you don't see it in your primary inbox, please check your <strong>Spam / Junk</strong> or <strong>Promotions</strong> folder.
+                </div>
+              </div>
+              <button type="button" onClick={() => navigate("/login")} className="btn btn-gradient btn-full" style={{ marginTop: "0.5rem" }}>
                 <span>Go to Login</span> <ArrowRight style={{ width: "1.25rem", height: "1.25rem" }} />
               </button>
             </div>
