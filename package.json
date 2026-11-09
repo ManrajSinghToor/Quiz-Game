@@ -1,10 +1,14 @@
 {
   "name": "quiz-arena",
   "version": "1.0.0",
-  "description": "Quiz Arena - Multiplayer & Single Player AI Quiz Platform",
+  "description": "Quiz Arena - Multiplayer & Single Player AI Quiz Platform (Spring Boot + React)",
   "private": true,
   "scripts": {
-    "build": "cd Frontend && npm install && npm run build && cd ../Backend && npm install",
-    "start": "cd Backend && npm start"
+    "build:frontend": "cd Frontend && npm install && npm run build",
+    "build:backend": "cd Backend && ./mvnw clean package -DskipTests",
+    "build": "npm run build:frontend && npm run build:backend",
+    "start": "cd Backend && ./mvnw spring-boot:run",
+    "dev:frontend": "cd Frontend && npm run dev",
+    "dev:backend": "cd Backend && ./mvnw spring-boot:run"
   }
 }

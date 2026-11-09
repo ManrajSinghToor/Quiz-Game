@@ -1,0 +1,208 @@
+%-------------------------
+% Resume in Latex
+% Author : Jake Gutierrez
+% Modified by : Manraj Singh
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+%----------- Sections -----------
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+%-------------------------
+% Custom Commands
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%% RESUME STARTS HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%-----------HEADING-----------
+
+\begin{center}
+    \textbf{\Huge \scshape Manraj Singh} \\ \vspace{1pt}a
+    \small +91 9501175140 $|$
+    \small manrajtoorsingh@gmail.com 
+    % \href{https://www.linkedin.com/in/manraj-singh-toor-10806b34a}{linkedIn} $|$
+    % \href{https://github.com/ManrajSinghToor}{github}
+\end{center}
+
+%-----------EDUCATION-----------
+
+\section{Education}
+\resumeSubHeadingListStart
+
+\resumeSubheading
+{Chitkara University}{Rajpura, Punjab}
+{Bachelor of Engineering in Computer Science}{Aug 2024 -- June 2028}
+\resumeItemListStart
+    \resumeItem{\textbf{CGPA: 9.45/10} \;|\; Among the Top 10\% of the Batch}
+\resumeItemListEnd
+
+\resumeSubheading
+{G.H.G Public Sr. Sec. School}{Sidhwan Khurd, Punjab}
+{Senior Secondary (Class XII)}{Apr 2022 -- Mar 2024}
+\resumeItemListStart
+    \resumeItem{\textbf{Percentage: 82.4\%}}
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------
+
+\section{Projects}
+\resumeSubHeadingListStart
+
+\resumeProjectHeading
+{\textbf{Rental Hub (HomeSpot)} $|$ \emph{React.js, Node.js, Express.js, MongoDB, JWT, Tailwind CSS, Vite}}{Jan 2025 -- Apr 2025}
+\resumeItemListStart
+\resumeItem{Built a MERN-based property rental website where users can browse properties, save favorites, and book rentals.}
+\resumeItem{Implemented user authentication using JWT and bcrypt for secure login and account management.}
+\resumeItem{Developed REST APIs and CRUD operations to manage users, properties, bookings, and favorites.}
+\resumeItem{Designed a responsive frontend using React, React Router, Tailwind CSS, and Vite.}
+\resumeItemListEnd
+
+\resumeProjectHeading
+{\textbf{Quiz Arena} $|$ \emph{React.js, Java Spring Boot, MongoDB, Socket.IO, JWT}}{Mar 2026 -- May 2026}
+\resumeItemListStart
+\resumeItem{Engineered a real-time multiplayer and AI-powered quiz platform using Java Spring Boot and React.js.}
+\resumeItem{Implemented secure user authentication and session management using Spring Security, JWT, and BCrypt.}
+\resumeItem{Architected real-time WebSocket/Socket.IO matchmaking battles and live leaderboard updates.}
+\resumeItem{Integrated Gemini AI for dynamic question generation with intelligent deterministic fallback pools.}
+\resumeItemListEnd
+
+\resumeProjectHeading
+{\textbf{PixelLens Pro (Chrome Extension)} $|$ \emph{JavaScript, Chrome Extension API, HTML, CSS, Figma API}}{Jun 2026 -- Present}
+\resumeItemListStart
+\resumeItem{Developing a Chrome extension to compare Figma designs with live web pages and identify UI differences.}
+\resumeItem{Integrated the Figma API to compare design layouts with actual web pages.}
+\resumeItem{Detects issues like spacing, alignment, padding, margins, and element dimensions.}
+\resumeItem{Provides suggestions to help developers match their web pages with the original Figma design.}
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+%-----------TECHNICAL SKILLS-----------
+
+\section{Technical Skills}
+
+\begin{itemize}[leftmargin=0.15in, label={}]
+\small{\item{
+
+\textbf{Languages:} Java, JavaScript, Python, SQL \\
+
+\textbf{Frontend:} React.js, HTML5, CSS3, Tailwind CSS, Material-UI \\
+
+\textbf{Backend:} Java Spring Boot, Spring Security, REST APIs, WebSocket, Socket.IO, JWT, Node.js, Express.js \\
+
+\textbf{Databases:} MongoDB, PostgreSQL \\
+
+\textbf{Tools:} Git, GitHub, Postman, VS Code, IntelliJ IDEA, Eclipse \\
+
+}}
+\end{itemize}
+%-----------ACHIEVEMENTS-----------
+
+\section{Achievements}
+\resumeSubHeadingListStart
+
+\resumeProjectHeading
+{\textbf{Code Radar Hackathon} $|$
+\href{https://github.com/ManrajSinghToor/Code-Radar-Hackathon.git}{\underline{GitHub}} $|$
+\href{<CERTIFICATE_LINK>}{\underline{Certificate}}}{}
+\resumeItemListStart
+\resumeItem{Selected for the Code Radar Hackathon after successfully solving multiple coding challenges during the selection rounds.}
+\resumeItemListEnd
+
+\resumeProjectHeading
+{\textbf{Data Structures \& Algorithms} $|$
+\href{https://leetcode.com/u/Manraj_123/}{\underline{LeetCode}}}{}
+\resumeItemListStart
+\resumeItem{Solved 300+ DSA problems across LeetCode and other coding platforms using Java.}
+\resumeItemListEnd
+
+\resumeProjectHeading
+{\textbf{Sandbox 4.0 Hackathon} $|$
+\href{https://drive.google.com/file/d/1krdM__4i-ZuDHjnYCQodQsk5paYiYMuV/view?usp=sharing}{\underline{Certificate}}}{}
+\resumeItemListStart
+\resumeItem{Received the \textbf{Best Teamwork Award} for outstanding collaboration during the university-level hackathon.}
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%-------------------------------------------
+\end{document}
